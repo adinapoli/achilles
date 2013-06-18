@@ -16,17 +16,6 @@ In your sbt project:
   "com.datastax.cassandra"  % "cassandra-driver-core" % "1.0.0"
 ```
 
-## Examples
-
-Look inside test. Maybe an experimental streaming interface can be added later:
-
-* [PlaygroundSpec](https://github.com/adinapoli/achilles/blob/master/src/test/scala/org/cakesolutions/achilles/PlaygroundSpec.scala)
-  gives you the gist about how to use the new driver to perform
-  basic operations like keyspaces/columns families creation, querying etc.
-
-* [IterateesSpec](https://github.com/adinapoli/achilles/blob/master/src/test/scala/org/cakesolutions/achilles/IterateesSpec.scala)
-  gives you a glimpse about the experimental streaming interface using
-  Scalaz's [iteratee](https://github.com/scalaz/scalaz/tree/scalaz-seven/iteratee/src/main/scala/scalaz/iteratee)
 
 ## Streaming interface
 The streaming interfaces live inside [Iteratees.scala](https://github.com/adinapoli/achilles/blob/master/src/main/scala/org/cakesolutions/achilles/Iteratees.scala)
@@ -43,4 +32,23 @@ are the mandatory readings:
 
 In a nutshell, iteratees gives you more control over the resource allocation/disposal,
 are easily composable and usually yield to more concise and composable code.
+
+## Using the library
+Using the trait is nothing difficult, if you have already a working knowledge
+of Iteratees. If you have not, here is a crash course. Conceptually, there are
+three entities you should be aware of:
+
+* Emumerators, object which describe how, given a resource ``R``, this resource
+  should be enumerated.
+
+* Iteratees, entities where the computation actually happens.
+
+* Enumeratees, which are commonly defined as "stream adapter": they transforms
+  the underlying enumerators (more example later!)
+
+There are then other types on top of that, but let's ignore them for now.
+
+[IterateesSpec](https://github.com/adinapoli/achilles/blob/master/src/test/scala/org/cakesolutions/achilles/IterateesSpec.scala)
+gives you a glimpse about the experimental streaming interface using aforementioned
+Scalaz's [iteratee](https://github.com/scalaz/scalaz/tree/scalaz-seven/iteratee/src/main/scala/scalaz/iteratee)
 
