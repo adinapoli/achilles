@@ -20,5 +20,6 @@ In your sbt project:
 
 Look inside test. Maybe an experimental streaming interface can be added later:
 
-* `PlaygroundSpec` gives you the gist about how to use the new driver to perform
+* [PlaygroundSpec](https://github.com/adinapoli/achilles/blob/master/src/test/scala/org/cakesolutions/achilles/PlaygroundSpec.scala)
+  gives you the gist about how to use the new driver to perform
   basic operations like keyspaces/columns families creation, querying etc.
