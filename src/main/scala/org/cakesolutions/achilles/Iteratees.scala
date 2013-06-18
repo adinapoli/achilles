@@ -43,7 +43,9 @@ trait CassandraIteratees {
   }
 
   //An iteratee which consume its input and finally dispose the
-  //generated session. Return the number of executed queries.
+  //generated session. Returns the number of executed queries.
+  //Enhancement: wrap it in a fromTryCatch/Try block, and collect
+  //failures if necessary.
   def withSession(implicit session: Session): Iteratee[Query, Int] = {
      def step(acc: Int)(s: Input[Query]): Iteratee[Query, Int] =
        s(el = e => {
