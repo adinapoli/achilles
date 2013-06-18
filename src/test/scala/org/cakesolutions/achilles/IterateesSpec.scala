@@ -58,5 +58,18 @@ class IterateesSpec extends Specification with CassandraImplicits {
       size mustEqual(1)
     }
 
+    "collects all songs name with appropriate iteratee" in new ClusterLifeCycle {
+
+      def getTitle(r: Row): String = r.getString("title")
+
+      val session = cluster.connect()
+      val query = QueryBuilder.select.all.from("simplex", "songs")
+      val results = session.execute(query)
+      val titles = (I.collect[String, List] %=
+                    I.map(getTitle) &=
+                    I.enumerate(results)).run
+      titles.head mustEqual("La Petite Tonkinoise")
+    }
+
   }
 }
