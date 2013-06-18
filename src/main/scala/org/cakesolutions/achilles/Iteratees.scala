@@ -5,8 +5,8 @@ import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder._
 import scalaz._
 import Scalaz._
-import iteratee._
-import Iteratee._
+import iteratee.{ Iteratee => I, _ }
+import scala.language.higherKinds
 
 trait CassandraImplicits {
   import language.implicitConversions
@@ -18,5 +18,14 @@ trait CassandraImplicits {
 
   implicit def asScalaStreamRS(rs: ResultSet): Stream[Row] = {
     asScalaIterator(rs.iterator()).toStream
+  }
+}
+
+trait CassandraIteratees extends CassandraImplicits {
+
+  //Implicitly call "collect" under the hood,
+  //collecting value trasformed by @f.
+  def gather[A,B](f: A => B): IterateeT[A, Id, List[B]] = {
+    I.collect[B, List] %= I.map(f)
   }
 }

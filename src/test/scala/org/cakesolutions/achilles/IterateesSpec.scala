@@ -10,7 +10,7 @@ import scalaz._
 import Scalaz._
 import iteratee.{ Iteratee => I }
 
-class IterateesSpec extends Specification with CassandraImplicits {
+class IterateesSpec extends Specification with CassandraIteratees {
 
   override def map(fs: =>Fragments) = Step(createDb) ^ fs ^ Step(dropDb)
 
@@ -68,6 +68,14 @@ class IterateesSpec extends Specification with CassandraImplicits {
       val titles = (I.collect[String, List] %=
                     I.map(getTitle) &=
                     I.enumerate(results)).run
+      titles.head mustEqual("La Petite Tonkinoise")
+    }
+
+    "collects all songs name using \"gather\"" in new ClusterLifeCycle {
+      val session = cluster.connect()
+      val query = QueryBuilder.select.all.from("simplex", "songs")
+      val results = session.execute(query)
+      val titles = (gather((r:Row) => r.getString("title")) &= I.enumerate(results)).run
       titles.head mustEqual("La Petite Tonkinoise")
     }
 
