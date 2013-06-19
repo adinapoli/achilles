@@ -75,9 +75,12 @@ trait CassandraIteratees {
 
 trait CassandraEnumeratees {
   
-  //EnumerateeT which converts a list of String into a list of Query.
   def toQuery: EnumerateeT[String, Query, Id] = {
     map((rq:String) => new SimpleStatement(rq))
+  }
+
+  def toRows: EnumerateeT[ResultSet, Stream[Row], Id] = {
+    map((rs:ResultSet) => asScalaIterator(rs.iterator()).toStream)
   }
 
 }

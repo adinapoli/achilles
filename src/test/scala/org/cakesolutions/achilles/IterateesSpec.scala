@@ -172,8 +172,8 @@ class IterateesSpec extends Specification with CassandraPipes {
       //I still haven't found how to chain together these two iteratees,
       //because in order to enumerate the result set list we need the list
       //back from running the first iteratee. Bear in mind this is more an
-      //exercise of style than a real need; due to the fact execute 
-      //yield a list of resultSet, we are allocating a potentially huge list
+      //exercise of style than a real need; due to the fact @execute 
+      //yield a list of @ResultSet, we are allocating a potentially huge list
       //anyway, which make the entire iteratees scaffolding useless.
       //Ideally what we want is a way to stream our @ResultSet in constant
       //memory allocation.
