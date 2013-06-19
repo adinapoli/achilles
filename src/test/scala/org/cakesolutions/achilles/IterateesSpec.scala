@@ -66,9 +66,6 @@ class IterateesSpec extends Specification with CassandraPipes {
     * (%=) chains an iteratee to an enumeratee, yielding a new iteratee
     * (&=) attaches our  iteraee to an enumeratee. Done that, we are ready
     * to run the Iteratee and to get the result back!
-    * In this case, we get a counter of the query which has been made, but
-    * possibilities are endless, we could yield a list of Failure obj to give
-    * us insights about what went wrong DB side.
     */
 
     (withSession %= toQuery &= enumRawQueries(queries)).run
@@ -137,6 +134,18 @@ class IterateesSpec extends Specification with CassandraPipes {
       val res2 = session.executeAsync(query2)
       val orders = (gather((r:Row) => r.getInt("ordering")) &= enumerateRSF(res2)).run
       orders.sum mustEqual(55)
+    }
+
+    "Doesn't dispose a session when using \"withSessionP\"" in {
+      implicit val session = cluster.connect()
+      val query1 = QueryBuilder.select.all.from("simplex", "playlist")
+      val query2 = QueryBuilder.select.all.from("simplex", "songs")
+      val orders = (gather((r:Row) => r.getInt("ordering")) &=
+                    I.enumerate(session.execute(query1))).run
+      orders.sum mustEqual(55)
+      val titles = (gather((r:Row) => r.getString("title")) &=
+                   I.enumerate(session.execute(query2))).run
+      titles.length mustEqual(1)
     }
 
   }

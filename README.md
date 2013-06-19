@@ -18,7 +18,7 @@ In your sbt project:
 
 
 ## Streaming interface
-The streaming interfaces live inside [Iteratees.scala](https://github.com/adinapoli/achilles/blob/master/src/main/scala/org/cakesolutions/achilles/Iteratees.scala)
+The streaming interfaces live inside [here](https://github.com/adinapoli/achilles/blob/master/src/main/scala/org/cakesolutions/achilles/pipes.scala)
 and it consist of modular trait divided by semantic cohesion. During your
 programming woes though, all you need to mixin in the trait ```CassandraPipes```
 with conveniently brings in scope everything you need.

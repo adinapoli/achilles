@@ -42,21 +42,31 @@ trait CassandraIteratees {
     collect[B, List] %= map(f)
   }
 
+  private def withSession_
+   (disposer: => Unit)(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
+     def step(acc: List[ResultSet])(s: Input[Query]): Iteratee[Query, List[ResultSet]] =
+       s(el = e => cont(step(acc :+ session.execute(e))),
+         empty = cont(step(acc)),
+         eof = {
+          disposer
+          done(acc, eofInput[Query]) }
+       )
+     cont(step(List()))
+  }
+
   //An iteratee which consume its input and finally dispose the
   //generated session. Returns the number of executed queries.
   //Enhancement: wrap it in a fromTryCatch/Try block, and collect
   //failures if necessary.
-  def withSession(implicit session: Session): Iteratee[Query, Int] = {
-     def step(acc: Int)(s: Input[Query]): Iteratee[Query, Int] =
-       s(el = e => {
-           session.execute(e)
-           cont(step(acc + 1))},
-         empty = cont(step(acc)),
-         eof = {
-          session.shutdown()
-          done(acc, eofInput[Query]) }
-       )
-     cont(step(0))
+  def withSession(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
+    withSession_(session.shutdown _)
+  }
+
+  //Like withSession, but it does not dispose of the session when the
+  //enumerator ends. the "P" stands for "pipe", so recall that computation
+  //just "flows" into this iteratee.
+  def withSessionP(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
+    withSession_(() => ())
   }
 
 }

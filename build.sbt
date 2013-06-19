@@ -57,6 +57,7 @@ libraryDependencies <<= scalaVersion { scala_version =>
         "org.specs2"             %% "specs2"             % "1.13"   % "test",
         "org.scalacheck"         %% "scalacheck"         % "1.10.0" % "test",
         "com.datastax.cassandra"  % "cassandra-driver-core" % "1.0.0",
+        "com.typesafe"            % "config"                % "1.0.1",
         "org.scalaz"             %% "scalaz-effect"         % scalazVersion,
         "org.scalaz"             %% "scalaz-iteratee"       % scalazVersion,
         "org.scalaz"             %% "scalaz-core"           % scalazVersion
