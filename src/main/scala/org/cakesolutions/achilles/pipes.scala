@@ -44,7 +44,7 @@ trait CassandraIteratees {
     collect[B, List] %= map(f)
   }
 
-  private def withSession_
+  private def execute_
    (disposer: => Unit)(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
      def step(acc: List[ResultSet])(s: Input[Query]): Iteratee[Query, List[ResultSet]] =
        s(el = e => cont(step(acc :+ session.execute(e))),
@@ -60,15 +60,15 @@ trait CassandraIteratees {
   //generated session. Returns the number of executed queries.
   //Enhancement: wrap it in a fromTryCatch/Try block, and collect
   //failures if necessary.
-  def withSession(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
-    withSession_(session.shutdown _)
+  def execute(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
+    execute_(session.shutdown _)
   }
 
-  //Like withSession, but it does not dispose of the session when the
+  //Like execute, but it does not dispose of the session when the
   //enumerator ends. the "P" stands for "pipe", so recall that computation
   //just "flows" into this iteratee.
-  def withSessionP(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
-    withSession_(() => ())
+  def executeP(implicit session: Session): Iteratee[Query, List[ResultSet]] = {
+    execute_(() => ())
   }
 
 }
@@ -84,6 +84,15 @@ trait CassandraEnumeratees {
 
 trait CassandraEnumerators {
 
+  implicit class RichEnumeratorT[E, F[_]](enum: EnumeratorT[E, F]) {
+
+    //Flipped version of "&=". It allows us to chain iteratees and enumerator
+    //in a pipeline fashion.
+    def =&[A](i: IterateeT[E, F, A])(implicit F: Bind[F]): IterateeT[E, F, A] = {
+      i &= enum
+    }
+  }
+
   def enumRS(rs: ResultSet): EnumeratorT[Row, Id] = {
     enumerate(asScalaIterator(rs.iterator()).toStream)
   }
@@ -92,6 +101,10 @@ trait CassandraEnumerators {
   //the future to block and wait for the result.
   def enumRS(rsf: ResultSetFuture): EnumeratorT[Row, Id] = {
     enumerate(asScalaIterator(rsf.get().iterator()).toStream)
+  }
+
+  def enumRSList(rsl: List[ResultSet]): EnumeratorT[Row, Id] = {
+    enumList(rsl.flatMap(_.all()))
   }
 
   def enumQueries(queries: List[Query]): EnumeratorT[Query, Id] = {

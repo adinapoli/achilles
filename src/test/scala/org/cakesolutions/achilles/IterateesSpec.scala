@@ -25,7 +25,7 @@ class IterateesSpec extends Specification with CassandraPipes {
      * enough per-application, but has the snag to be tied to one keyspace,
      * so in case you need to query more than one you need more than just one
      * session. The reason is implicit is because we are implicitly passing it
-     * to our iteratee @withSession (see below).
+     * to our iteratee @execute (see below).
      */
     implicit val session = cluster.connect()
 
@@ -44,8 +44,8 @@ class IterateesSpec extends Specification with CassandraPipes {
                          'La Petite Tonkinoise', 'Bye Bye Blackbird',
                          'Joséphine Baker', {'jazz', '2013'})""",
 
-      """CREATE TABLE simplex.playlist ( id uuid PRIMARY KEY,
-                       title text, ordering int);""")
+      """CREATE TABLE simplex.playlist ( id uuid,
+                       title text, ordering int PRIMARY KEY);""")
 
     (1 to 10) map { order =>
       val uuid = UUID.randomUUID().toString
@@ -57,7 +57,7 @@ class IterateesSpec extends Specification with CassandraPipes {
     * First of all, we need to create an enumerator. Scalaz provides lots
     * of out-of-the-box enumerators, @enumRawQueries is syntactic sugar we
     * created to enumerate a list of strings, our queries. If you look at 
-    * the type signature of @withSession you'll notice it's our Iteratee, but
+    * the type signature of @execute you'll notice it's our Iteratee, but
     * it process @Query objects, not strings, so we need to modify our stream
     * from a List[String] -> List[Query], and here's where an enumeratee comes
     * into play. @toQuery just does that.
@@ -68,7 +68,7 @@ class IterateesSpec extends Specification with CassandraPipes {
     * to run the Iteratee and to get the result back!
     */
 
-    (withSession %= toQuery &= enumRawQueries(queries)).run
+    (execute %= toQuery &= enumRawQueries(queries)).run
   }
 
   def dropDb = {
@@ -136,7 +136,7 @@ class IterateesSpec extends Specification with CassandraPipes {
       orders.sum mustEqual(55)
     }
 
-    "not dispose a session when using \"withSessionP\"" in {
+    "not dispose a session when using \"executeP\"" in {
       implicit val session = cluster.connect()
       val query1 = QB.select.all.from("simplex", "playlist")
       val query2 = QB.select.all.from("simplex", "songs")
@@ -155,12 +155,31 @@ class IterateesSpec extends Specification with CassandraPipes {
       val query1 = QB.update("simplex", "songs")
                     .`with`(QB.set("title", "Le petite Maison")).where(clause)
 
-      (withSessionP &= enumQueries(query1)).run
+      (executeP &= enumQueries(query1)).run
       val query2 = QB.select.all.from("simplex", "songs").where(clause)
 
       val titles = (gather((r:Row) => r.getString("title")) &=
                     I.enumerate(session.execute(query2))).run
       titles.head mustEqual("Le petite Maison")
+    }
+
+    "chain more than one query together" in {
+      implicit val session = cluster.connect()
+
+      val query1 = QB.select.all.from("simplex", "playlist").where(QB.eq("ordering", 1))
+      val query2 = QB.select.all.from("simplex", "playlist").where(QB.eq("ordering", 2))
+      
+      //I still haven't found how to chain together these two iteratees,
+      //because in order to enumerate the result set list we need the list
+      //back from running the first iteratee. Bear in mind this is more an
+      //exercise of style than a real need; due to the fact execute 
+      //yield a list of resultSet, we are allocating a potentially huge list
+      //anyway, which make the entire iteratees scaffolding useless.
+      //Ideally what we want is a way to stream our @ResultSet in constant
+      //memory allocation.
+      val rs = (execute &= enumQueries(List(query1, query2))).run
+      val titles = (I.length[Row, Id] &= enumRSList(rs)).run
+      titles mustEqual(2)
     }
 
   }
