@@ -4,7 +4,7 @@ package org.cakesolutions.achilles
 import org.specs2.mutable.{ Specification, Before }
 import org.specs2.specification.{ Step, Fragments }
 import com.datastax.driver.core._
-import com.datastax.driver.core.querybuilder._
+import com.datastax.driver.core.querybuilder.{QueryBuilder => QB}
 import java.util.UUID
 import scalaz._
 import Scalaz._
@@ -83,8 +83,8 @@ class IterateesSpec extends Specification with CassandraPipes {
 
     "enumerate underlying iterators" in {
       val session = cluster.connect()
-      val clause = QueryBuilder.eq("id", UUID.fromString("756716f7-2e54-4715-9f00-91dcbea6cf50"))
-      val query = QueryBuilder.select.all.from("simplex", "songs").where(clause)
+      val clause = QB.eq("id", UUID.fromString("756716f7-2e54-4715-9f00-91dcbea6cf50"))
+      val query = QB.select.all.from("simplex", "songs").where(clause)
       val results = session.execute(query)
 
       /* Here we are enumerating our results directly. There is an
@@ -101,7 +101,7 @@ class IterateesSpec extends Specification with CassandraPipes {
       def getTitle(r: Row): String = r.getString("title")
 
       val session = cluster.connect()
-      val query = QueryBuilder.select.all.from("simplex", "songs")
+      val query = QB.select.all.from("simplex", "songs")
       val results = session.execute(query)
 
       /* The only new bit here is that we are composing collect and map
@@ -117,7 +117,7 @@ class IterateesSpec extends Specification with CassandraPipes {
 
     "collects all songs name using \"gather\"" in {
       val session = cluster.connect()
-      val query = QueryBuilder.select.all.from("simplex", "songs")
+      val query = QB.select.all.from("simplex", "songs")
       val results = session.execute(query)
 
       /* We are using @gather, passing a function which transform our processing
@@ -130,22 +130,37 @@ class IterateesSpec extends Specification with CassandraPipes {
 
     "allow async IO" in {
       val session = cluster.connect()
-      val query2 = QueryBuilder.select.all.from("simplex", "playlist")
+      val query2 = QB.select.all.from("simplex", "playlist")
       val res2 = session.executeAsync(query2)
-      val orders = (gather((r:Row) => r.getInt("ordering")) &= enumerateRSF(res2)).run
+      val orders = (gather((r:Row) => r.getInt("ordering")) &= enumRS(res2)).run
       orders.sum mustEqual(55)
     }
 
-    "Doesn't dispose a session when using \"withSessionP\"" in {
+    "not dispose a session when using \"withSessionP\"" in {
       implicit val session = cluster.connect()
-      val query1 = QueryBuilder.select.all.from("simplex", "playlist")
-      val query2 = QueryBuilder.select.all.from("simplex", "songs")
+      val query1 = QB.select.all.from("simplex", "playlist")
+      val query2 = QB.select.all.from("simplex", "songs")
       val orders = (gather((r:Row) => r.getInt("ordering")) &=
                     I.enumerate(session.execute(query1))).run
       orders.sum mustEqual(55)
       val titles = (gather((r:Row) => r.getString("title")) &=
                    I.enumerate(session.execute(query2))).run
       titles.length mustEqual(1)
+    }
+
+    "update a song title" in {
+      implicit val session = cluster.connect()
+
+      val clause = QB.eq("id", UUID.fromString("756716f7-2e54-4715-9f00-91dcbea6cf50"))
+      val query1 = QB.update("simplex", "songs")
+                    .`with`(QB.set("title", "Le petite Maison")).where(clause)
+
+      (withSessionP &= enumQueries(query1)).run
+      val query2 = QB.select.all.from("simplex", "songs").where(clause)
+
+      val titles = (gather((r:Row) => r.getString("title")) &=
+                    I.enumerate(session.execute(query2))).run
+      titles.head mustEqual("Le petite Maison")
     }
 
   }

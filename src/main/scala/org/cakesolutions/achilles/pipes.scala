@@ -21,6 +21,8 @@ trait CassandraImplicits {
     asScalaIterator(rs.iterator()).toStream
   }
 
+  implicit def asQueryList(q: Query): List[Query] = List(q)
+
 }
 
 trait CassandraPipes extends CassandraImplicits
@@ -82,9 +84,13 @@ trait CassandraEnumeratees {
 
 trait CassandraEnumerators {
 
+  def enumRS(rs: ResultSet): EnumeratorT[Row, Id] = {
+    enumerate(asScalaIterator(rs.iterator()).toStream)
+  }
+
   //Handle with care. Enumerating a ResultSetFuture will cause
   //the future to block and wait for the result.
-  def enumerateRSF(rsf: ResultSetFuture): Enumerator[Row] = {
+  def enumRS(rsf: ResultSetFuture): EnumeratorT[Row, Id] = {
     enumerate(asScalaIterator(rsf.get().iterator()).toStream)
   }
 
